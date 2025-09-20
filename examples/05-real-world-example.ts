@@ -7,6 +7,7 @@ import {
   NotFoundError,
 } from "@/utils/create-server-fn";
 import z from "zod";
+import { adminServerFn } from "./middleware";
 
 /**
  * REAL-WORLD EXAMPLE
@@ -42,29 +43,8 @@ const mockPosts: Post[] = [
   },
 ];
 
-// Auth middleware
-const authMiddleware = async () => {
-  const user = mockUsers[0]; // Mock: always return first user
-  if (!user) throw new UnauthorizedError("Login required");
-  return { user };
-};
-
-// Audit middleware
-const auditMiddleware = async (context: { user: User }) => {
-  return {
-    ...context,
-    audit: {
-      timestamp: new Date().toISOString(),
-      userId: context.user.id,
-    },
-  };
-};
-
-// Base authenticated server function (not exported - used internally)
-const authServerFn = createServerFn().use(authMiddleware).use(auditMiddleware);
-
 // Create a blog post
-export const createPost = authServerFn
+export const createPost = adminServerFn
   .validate(
     z.object({
       title: z.string().min(1, "Title required"),
@@ -86,12 +66,11 @@ export const createPost = authServerFn
     return {
       post,
       createdBy: context.user.email,
-      createdAt: context.audit.timestamp,
     };
   });
 
 // Upload post image with FormData
-export const uploadPostImage = authServerFn
+export const uploadPostImage = adminServerFn
   .validate(async (data: unknown) => {
     if (!(data instanceof FormData)) {
       throw new ValidationError("Expected FormData");
@@ -156,7 +135,7 @@ export const getPosts = createServerFn()
   });
 
 // Complex workflow: publish post and notify
-export const publishPost = authServerFn
+export const publishPost = adminServerFn
   .validate(z.object({ postId: z.string() }))
   .handler(async ({ input, context }) => {
     const post = mockPosts.find((p) => p.id === input.postId);
@@ -181,7 +160,6 @@ export const publishPost = authServerFn
     return {
       published: true,
       postId: input.postId,
-      publishedAt: context.audit.timestamp,
       publishedBy: context.user.email,
       notificationsSent,
     };

@@ -1,6 +1,10 @@
 "server-only";
 
-import { UnauthorizedError, ForbiddenError } from "@/utils/create-server-fn";
+import {
+  UnauthorizedError,
+  ForbiddenError,
+  createServerFn,
+} from "@/utils/create-server-fn";
 
 /**
  * Simple reusable middleware for examples
@@ -33,16 +37,21 @@ async function getAdminUser(): Promise<User | null> {
 }
 
 // Auth middleware
-export const authMiddleware = async () => {
+const authMiddleware = async () => {
   const user = await getCurrentUser();
   if (!user) throw new UnauthorizedError("Login required");
   return { user };
 };
 
 // Admin middleware
-export const adminMiddleware = async () => {
+const adminMiddleware = async () => {
   const user = await getAdminUser();
   if (!user || user.role !== "admin")
     throw new ForbiddenError("Admin required");
   return { user, isAdmin: true };
 };
+
+export const authServerFn = createServerFn().use(authMiddleware);
+export const adminServerFn = createServerFn()
+  .use(authMiddleware)
+  .use(adminMiddleware);
