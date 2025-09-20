@@ -21,9 +21,10 @@ export const withContext = createServerFn()
 
 // Multiple middleware (context flows through)
 export const multipleMiddleware = createServerFn()
-  .use(async () => ({ step: 1 }))
-  .use(async (context) => ({ ...context, step: 2 }))
-  .use(async (context) => ({ ...context, step: 3 }))
+  .use(async () => ({ userId: "user-123" }))
+  .use(async (context) => ({ ...context, timestamp: Date.now() })) // receives { userId: "user-123" }
+  .use(async (context) => ({ ...context, requestId: "req-456" })) // receives { userId: "user-123", timestamp: 1234567890 }
   .handler(async ({ context }) => {
-    return { finalStep: context.step };
+    // context = { userId: "user-123", timestamp: 1234567890, requestId: "req-456" }
+    return { context };
   });
